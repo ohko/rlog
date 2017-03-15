@@ -1,18 +1,22 @@
 package rlog
 
-import "github.com/ohko/omsg"
+import (
+	"fmt"
+	"time"
 
-import "time"
+	"github.com/ohko/omsg"
+)
 
 // Client ...
 type Client struct {
-	cache chan []byte // 缓冲日志
-	omsg  *omsg.Client
+	cache     chan []byte // 缓冲日志
+	cacheSize int         // 缓冲大小
+	omsg      *omsg.Client
 }
 
 // NewClient ...
 func NewClient(addr string, cacheSize int) *Client {
-	o := &Client{}
+	o := &Client{cacheSize: cacheSize}
 	o.cache = make(chan []byte, cacheSize)
 	o.omsg = omsg.NewClient(nil, nil)
 	o.omsg.Connect(addr, true, 5, 5)
@@ -32,6 +36,12 @@ func (o *Client) Send(key, value string) {
 	case o.cache <- enData(key, value):
 	default:
 	}
+}
+
+// Status 发送日志
+func (o *Client) Status() string {
+	h := fmt.Sprintf("日志缓冲：%v/%v\n", len(o.cache), o.cacheSize)
+	return h
 }
 
 func (o *Client) do() {
