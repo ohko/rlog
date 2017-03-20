@@ -19,7 +19,7 @@ func NewClient(addr string, cacheSize int) *Client {
 	o := &Client{cacheSize: cacheSize}
 	o.cache = make(chan []byte, cacheSize)
 	o.omsg = omsg.NewClient(nil, nil)
-	o.omsg.Connect(addr, true, 5, 5)
+	go o.omsg.Connect(addr, true, 5, 5)
 
 	go func() {
 		for {
