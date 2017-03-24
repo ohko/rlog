@@ -20,13 +20,14 @@ type Server struct {
 	packSize  int         // 打包处理数量
 	omsg      *omsg.Server
 	onPack    func(string, []byte)
+	onData    func([]byte)
 }
 
 // NewServer ...
-func NewServer(addr string, cacheSize, packSize int, onPack func(string, []byte)) (*Server, error) {
-	o := &Server{cacheSize: cacheSize, packSize: packSize, onPack: onPack, logs: make(map[string]chan string)}
+func NewServer(addr string, cacheSize, packSize int, onData func([]byte), onPack func(string, []byte)) (*Server, error) {
+	o := &Server{cacheSize: cacheSize, packSize: packSize, onPack: onPack, onData: onData, logs: make(map[string]chan string)}
 	o.cache = make(chan string, cacheSize)
-	o.omsg = omsg.NewServer(o.onData, nil, nil)
+	o.omsg = omsg.NewServer(o.onServerData, nil, nil)
 	if err := o.omsg.StartServer(addr); err != nil {
 		log.Println("ERROR:", err)
 		return nil, err
@@ -66,9 +67,12 @@ func (o *Server) SetPackSize(packsize int) int {
 }
 
 // 收到数据
-func (o *Server) onData(conn net.Conn, data []byte) {
+func (o *Server) onServerData(conn net.Conn, data []byte) {
 	select {
 	case o.cache <- string(data):
+		if o.onData != nil {
+			o.onData(data)
+		}
 	default:
 	}
 }
